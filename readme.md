@@ -65,5 +65,36 @@
       - LLM (interviewer decides what to say next)
       - TTS (text to speech) - the reply that is spoken by interviewer says
 
+# Flow
+  - Browser will ask for microphone permission
+  - ui starts a vapi call using public web token (vite vapi web token)
+  - vapi talks / listens - Backend is idle
+  - ui accumulates a live transcrpt from vapi events 
+  - call ends - ui - post req - server 
+  - server - post req - openai - saves in db 
+  - feed back
 
 
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: "your-api-key",
+});
+
+const response = openai.responses.create({
+  model: "gpt-6-luna",
+  input: "Ask anything",
+  store: true,
+});
+
+response.then((result) => console.log(result.output_text));
+
+
+# 2 important things about mongodb
+  - [Embedding] : storing related data inside the same parent document like nested objects
+  - [Refrencing] : storing realted data inside the other collection, by only keeping a referreing id pointer
+
+# you can store nested objects and embeddings in relational databases like PostgreSQL and MySQL, but they handle them differently than MongoDB. While MongoDB natively stores flexible JSON documents, modern SQL databases have evolved specialized data types and features to handle unstructured data, nested documents, and high-dimensional vector embeddings.
+ - PostgreSQL (JSONB): PostgreSQL has a jsonb (Binary JSON) data type. Unlike standard text JSON, jsonb parses the data into a decomposed binary format, making it fast to query and index. You can create GIN (Generalized Inverted Index) indexes inside nested keys and query deep properties using operators like -> and ->>.
+
+ - MySQL (JSON): MySQL also supports a native JSON data type with built-in functions (like JSON_EXTRACT, JSON_CONTAINS, and multi-valued virtual generated columns) that let you query and index nested fields. 

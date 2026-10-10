@@ -186,45 +186,96 @@ export function Agent({ interviewId, questions, feedbackId }: AgentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callStatus]);
 
-  const handleCall = async () => {
+  // const handleCall = async () => {
+  //   if (callStatus === "ACTIVE") {
+  //     getVapi().stop();
+  //     return;
+  //   }
+
+  //   try {
+  //     setCallStatus("CONNECTING");
+  //     setTranscript([]);
+  //     setSpeaker("none");
+  //     setVolume(0);
+  //     setCurrentQuestion(1);
+  //     currentQuestionRef.current = 1;
+
+  //     const systemMessage = interviewer.model?.messages?.[0];
+  //     const questionsList = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
+  //     const assistant: CreateAssistantDTO = {
+  //       ...interviewer,
+  //       model: {
+  //         ...interviewer.model!,
+  //         messages: [
+  //           {
+  //             role: "system",
+  //             content: (systemMessage?.content as string)?.replace(
+  //               "{{questions}}",
+  //               questionsList
+  //             ),
+  //           },
+  //         ],
+  //       },
+  //     };
+  //     await getVapi().start(assistant);
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast.error("Could not start call. Is VITE_VAPI_WEB_TOKEN set?");
+  //     setCallStatus("INACTIVE");
+  //   }
+  // };
+const handleCall = async () => {
     if (callStatus === "ACTIVE") {
-      getVapi().stop();
-      return;
+        getVapi().stop();
+        return;
     }
 
     try {
-      setCallStatus("CONNECTING");
-      setTranscript([]);
-      setSpeaker("none");
-      setVolume(0);
-      setCurrentQuestion(1);
-      currentQuestionRef.current = 1;
+        setCallStatus("CONNECTING");
+        setTranscript([]);
+        setSpeaker("none");
+        setVolume(0);
+        setCurrentQuestion(1);
+        currentQuestionRef.current = 1;
 
-      const systemMessage = interviewer.model?.messages?.[0];
-      const questionsList = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
-      const assistant: CreateAssistantDTO = {
-        ...interviewer,
-        model: {
-          ...interviewer.model!,
-          messages: [
-            {
-              role: "system",
-              content: (systemMessage?.content as string)?.replace(
-                "{{questions}}",
-                questionsList
-              ),
+        const questionsList = questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
+        
+        // Grab existing messages or provide a safe default system prompt if none exists
+        const existingMessages = interviewer.model?.messages || [];
+        const updatedMessages = existingMessages.map((msg) => {
+            if (msg.role === "system" && typeof msg.content === "string") {
+                return {
+                    ...msg,
+                    content: msg.content.replace("{{questions}}", questionsList),
+                };
+            }
+            return msg;
+        });
+
+        // If no system message existed in the template, push one
+        if (!updatedMessages.some(m => m.role === "system")) {
+            updatedMessages.unshift({
+                role: "system",
+                content: `You are an expert technical interviewer. Ask these questions one by one:\n${questionsList}`,
+            });
+        }
+
+        const assistant: CreateAssistantDTO = {
+            ...interviewer,
+            model: {
+                ...interviewer.model!,
+                messages: updatedMessages,
             },
-          ],
-        },
-      };
-      await getVapi().start(assistant);
-    } catch (err) {
-      console.error(err);
-      toast.error("Could not start call. Is VITE_VAPI_WEB_TOKEN set?");
-      setCallStatus("INACTIVE");
-    }
-  };
+        };
 
+        console.log("Starting Vapi with inline assistant configuration...");
+        await getVapi().start(assistant);
+    } catch (err) {
+        console.error("Vapi inline start error:", err);
+        toast.error("Could not start call. Check console for details.");
+        setCallStatus("INACTIVE");
+    }
+};
   const handleGenerateFeedback = async () => {
     setIsSubmitting(true);
     try {
